@@ -1,4 +1,4 @@
-package cn.j4ger
+package cn.j4ger.firewatch
 
 import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
 import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
