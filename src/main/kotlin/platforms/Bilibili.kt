@@ -89,6 +89,20 @@ data class Bilibili(private val targetId: String, override var targetName: Strin
                             }
                         )
                     }
+                    64 -> {
+                        val articleCard: ArticleCard = Json.decodeFromString(dynamicCardInfo.card)
+                        +PlainText(
+                            buildString {
+                                appendLine("专栏标题：")
+                                appendLine(articleCard.title)
+                                appendLine("动态内容：")
+                                appendLine(articleCard.summary)
+                            }
+                        )
+                        articleCard.banner_url?.let {
+                            +Image(Watcher.uploadImage(it).imageId)
+                        }
+                    }
                     else -> {
                         +PlainText("<Unresolved Content>")
                     }
@@ -162,5 +176,13 @@ private data class VideoCard(
     val short_link_v2: String?,
     val title: String,
     val pic: String
+)
+
+// type: 64
+@Serializable
+private data class ArticleCard(
+    val title: String,
+    val summary: String,
+    val banner_url: String?,
 )
 
