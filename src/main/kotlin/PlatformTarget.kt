@@ -6,6 +6,7 @@ import net.mamoe.mirai.message.data.Message
 import java.time.LocalDateTime
 
 interface WatcherPlatformTarget {
+    var targetName: String
     val platformIdentifier: String
     val updateRequestUrl: String
     val infoRequestUrl: String

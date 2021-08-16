@@ -1,6 +1,9 @@
 package cn.j4ger.firewatch
 
+import cn.j4ger.firewatch.SubscribeCommands.subscribeCommandHandler
+import cn.j4ger.firewatch.UnsubscribeCommands.unsubscribeCommandHandler
 import cn.j4ger.firewatch.platforms.Bilibili
+import cn.j4ger.firewatch.platforms.resolvePlatformTarget
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import net.mamoe.mirai.console.command.CommandSender
@@ -13,28 +16,24 @@ object SubscribeCommands : SimpleCommand(
 ) {
     @Handler
     suspend fun CommandSender.subscribeCommandHandler(targetPlatform: String, targetId: String) {
-        when (targetPlatform.lowercase()) {
-            "bilibili", "bili", "b站" -> {
-                val newTarget = Bilibili(targetId)
-                val infoResponse: HttpResponse = Watcher.httpClient.get(newTarget.infoRequestUrl)
-                if (newTarget.resolveTargetValidity(infoResponse)) {
-                    val currentGroup = this.getGroupOrNull() ?: kotlin.run {
-                        this.sendMessage("Invalid Command Environment")
-                        return@subscribeCommandHandler
-                    }
-                    val targetName = newTarget.resolveTargetName(infoResponse)
-                    val currentList = FirewatchConfig.targets[newTarget] ?: kotlin.run {
-                        mutableSetOf()
-                    }
-                    currentList.add(currentGroup.id)
-                    this.sendMessage("已对${newTarget.platformIdentifier} $targetName 添加订阅")
-                } else {
-                    this.sendMessage("Invalid Target ID")
+        resolvePlatformTarget(targetPlatform, targetId)?.let {
+            val infoResponse: HttpResponse = Watcher.httpClient.get(it.infoRequestUrl)
+            if (it.resolveTargetValidity(infoResponse)) {
+                val currentGroup = this.getGroupOrNull() ?: kotlin.run {
+                    sendMessage("Invalid Command Environment")
+                    return@subscribeCommandHandler
                 }
-            }
-            else -> {
-                this.sendMessage("Unresolved Platform")
-                this.sendMessage(
+                val targetName = it.resolveTargetName(infoResponse)
+                val currentList = FirewatchConfig.targets[it] ?: kotlin.run {
+                    mutableSetOf()
+                }
+                currentList.add(currentGroup.id)
+                sendMessage("已对${it.platformIdentifier} $targetName 添加订阅")
+            } else {
+                sendMessage("Invalid Target ID")
+            } ?: run {
+                sendMessage("Unresolved Platform $targetPlatform")
+                sendMessage(
                     buildString {
                         appendLine("Supported Platforms:")
                         appendLine("bilibili, bili, b站")
@@ -45,32 +44,59 @@ object SubscribeCommands : SimpleCommand(
     }
 }
 
-object UnsubscribeCommands : CompositeCommand(
+object UnsubscribeCommands : SimpleCommand(
     Firewatch, "取消订阅", "unsubscribe", description = "取消订阅社交平台更新"
 ) {
-    @SubCommand("微博", "weibo", "Weibo")
-    suspend fun CommandSender.unsubscribeWeibo(target: String) {
-        TODO("needs further implementations")
+    @Handler
+    suspend fun CommandSender.unsubscribeCommandHandler(targetPlatform: String, targetId: String) {
+        resolvePlatformTarget(targetPlatform, targetId)?.let { watcherPlatformTarget ->
+            val currentGroup = this.getGroupOrNull() ?: kotlin.run {
+                sendMessage("Invalid Command Environment")
+                return@unsubscribeCommandHandler
+            }
+            FirewatchConfig.targets[watcherPlatformTarget]?.let {
+                if (it.remove(currentGroup.id)) {
+                    sendMessage("对${watcherPlatformTarget.platformIdentifier} $targetId 的订阅已移除")
+                } else {
+                    sendMessage("Subscription not found")
+                }
+            } ?: run {
+                sendMessage("Subscription not found")
+            }
+        } ?: run {
+            sendMessage("Unresolved Platform $$targetPlatform")
+            sendMessage(
+                buildString {
+                    appendLine("Supported Platforms:")
+                    appendLine("bilibili, bili, b站")
+                })
+        }
     }
-
-    @SubCommand("B站", "b站", "哔哩哔哩", "bilibili", "bili")
-    suspend fun CommandSender.unsubscribeBilibili(target: String) {
-        TODO("needs further implementations")
-    }
-
-    @SubCommand("编号", "id")
-    suspend fun CommandSender.unsubscribeId(target: String) {
-        TODO("needs further implementations")
-    }
-
 }
 
 object ManageCommands : CompositeCommand(
     Firewatch, "管理订阅", "manage-subscription", description = "管理订阅列表"
 ) {
-    @SubCommand("显示全部", "list-all")
+    @SubCommand("显示全部", "list-all", "所有订阅", "listall", "全部", "所有", "all")
     suspend fun CommandSender.listAll() {
-        TODO("needs further implementations")
+        val currentGroup = this.getGroupOrNull() ?: kotlin.run {
+            this.sendMessage("Invalid Command Environment")
+            return@listAll
+        }
+        sendMessage(
+            buildString {
+                appendLine("组$currentGroup.id 的全部订阅：")
+                var total = 0
+                FirewatchConfig.targets.forEach {
+                    if (currentGroup.id in it.value) {
+                        appendLine("${it.key.platformIdentifier} ${it.key.targetName}")
+                        total++
+                    }
+                }
+                appendLine("总计$total 项")
+            }
+        )
+
     }
 
 }

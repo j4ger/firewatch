@@ -18,7 +18,8 @@ import java.util.*
 const val defaultName = "<...>"
 
 @Serializable
-class Bilibili(private val targetId: String, private var targetName: String = defaultName) : WatcherPlatformTarget {
+data class Bilibili(private val targetId: String, override var targetName: String = defaultName) :
+    WatcherPlatformTarget {
     override val platformIdentifier = "Bilibili"
 
     // fetching the first 10 dynamics for now
