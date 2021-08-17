@@ -4,10 +4,14 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.features.json.*
+import io.ktor.client.features.json.serializer.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.coroutines.*
+import kotlinx.serialization.json.Json
 import net.mamoe.mirai.Bot
+import net.mamoe.mirai.console.permission.PermissionId
+import net.mamoe.mirai.console.permission.PermissionService
 import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.message.data.Image
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
@@ -16,16 +20,19 @@ import java.io.Closeable
 //TODO: error handling
 
 object Watcher : Closeable {
-    private val bot = Bot.instances[0]
-    private val botSelfContact = bot.asFriend as Contact
-
     private lateinit var job: Job
     lateinit var httpClient: HttpClient
+    lateinit var jsonParser: Json
 
     private val watcherScope = CoroutineScope(Dispatchers.IO)
-    suspend fun init() {
+    fun init() {
+        jsonParser = kotlinx.serialization.json.Json {
+            ignoreUnknownKeys = true
+        }
         httpClient = HttpClient(CIO) {
-            install(JsonFeature)
+            install(JsonFeature) {
+                serializer = KotlinxSerializer(jsonParser)
+            }
         }
         job = watcherScope.launch {
             FirewatchConfig.targets.forEach {
@@ -44,16 +51,14 @@ object Watcher : Closeable {
         }
     }
 
-    suspend fun checkForUpdate(target: WatcherPlatformTarget, contactId: Set<Long>) {
+    private suspend fun checkForUpdate(target: WatcherPlatformTarget, contactId: Set<Long>) {
         val response: HttpResponse = httpClient.get(target.updateRequestUrl)
         val lastUpdateTime = target.resolveLastUpdateTime(response)
         val localLastUpdateTime = FirewatchData.lastUpdateTime[target] ?: lastUpdateTime
-        if (lastUpdateTime > FirewatchData.lastUpdateTime[target]) {
+        if (lastUpdateTime > localLastUpdateTime) {
             val message = target.genUpdateMessage(response, localLastUpdateTime)
             contactId.forEach { id ->
-                bot.getGroup(id)?.let {
-                    it.sendMessage(message)
-                }
+                Bot.instances[0].getGroup(id)?.sendMessage(message)
             }
         }
         FirewatchData.lastUpdateTime[target] = lastUpdateTime
@@ -64,10 +69,10 @@ object Watcher : Closeable {
         val imageResponse: HttpResponse = httpClient.get(sourceUrl)
         val imageBytes: ByteArray = imageResponse.receive()
         val externalResource = imageBytes.toExternalResource(filename)
-        return botSelfContact.uploadImage(externalResource)
+        return (Bot.instances[0].asFriend as Contact).uploadImage(externalResource)
     }
 
-    suspend fun respawn() {
+    fun respawn() {
         close()
         init()
     }

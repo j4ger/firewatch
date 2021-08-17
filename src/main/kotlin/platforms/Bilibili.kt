@@ -4,22 +4,19 @@ import cn.j4ger.firewatch.Watcher
 import cn.j4ger.firewatch.WatcherPlatformTarget
 import cn.j4ger.firewatch.utils.parseJSTimestamp
 import io.ktor.client.statement.*
+import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
 import net.mamoe.mirai.message.data.Image
 import net.mamoe.mirai.message.data.Message
 import net.mamoe.mirai.message.data.PlainText
 import net.mamoe.mirai.message.data.buildMessageChain
-import java.time.Instant
-import java.time.LocalDateTime
-import java.util.*
 
 const val defaultName = "<...>"
 
 @Serializable
 data class Bilibili(private val targetId: String, override var targetName: String = defaultName) :
-    WatcherPlatformTarget {
+    WatcherPlatformTarget() {
     override val platformIdentifier = "Bilibili"
 
     // fetching the first 10 dynamics for now
@@ -27,17 +24,17 @@ data class Bilibili(private val targetId: String, override var targetName: Strin
         "https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history?host_uid=$targetId"
     override val infoRequestUrl = "https://api.bilibili.com/x/space/acc/info?mid=$targetId"
 
-    override suspend fun resolveLastUpdateTime(response: HttpResponse): LocalDateTime {
-        val parsedResult = Json.decodeFromString<DynamicResponseJson>(response.readText())
+    override suspend fun resolveLastUpdateTime(response: HttpResponse): Instant {
+        val parsedResult = Watcher.jsonParser.decodeFromString<DynamicResponseJson>(response.readText())
         return if (parsedResult.data.cards.isEmpty()) {
-            LocalDateTime.ofInstant(Instant.EPOCH, TimeZone.getDefault().toZoneId())
+            Instant.fromEpochSeconds(0)
         } else {
             parseJSTimestamp(parsedResult.data.cards[0].desc.timestamp)
         }
     }
 
-    override suspend fun genUpdateMessage(response: HttpResponse, lastUpdateTime: LocalDateTime): Message {
-        val parsedResult = Json.decodeFromString<DynamicResponseJson>(response.readText())
+    override suspend fun genUpdateMessage(response: HttpResponse, lastUpdateTime: Instant): Message {
+        val parsedResult = Watcher.jsonParser.decodeFromString<DynamicResponseJson>(response.readText())
         val targetUpdates = parsedResult.data.cards.filter {
             parseJSTimestamp(it.desc.timestamp) > lastUpdateTime
         }
@@ -51,7 +48,7 @@ data class Bilibili(private val targetId: String, override var targetName: Strin
 
                 when (dynamicCardInfo.desc.type) {
                     1 -> {
-                        val textCard: TextCard = Json.decodeFromString(dynamicCardInfo.card)
+                        val textCard: TextCard = Watcher.jsonParser.decodeFromString(dynamicCardInfo.card)
                         +PlainText(
                             buildString {
                                 appendLine("动态内容：")
@@ -60,7 +57,7 @@ data class Bilibili(private val targetId: String, override var targetName: Strin
                         )
                     }
                     2 -> {
-                        val imageCard: ImageCard = Json.decodeFromString(dynamicCardInfo.card)
+                        val imageCard: ImageCard = Watcher.jsonParser.decodeFromString(dynamicCardInfo.card)
                         +PlainText(
                             buildString {
                                 appendLine("动态内容：")
@@ -72,7 +69,7 @@ data class Bilibili(private val targetId: String, override var targetName: Strin
                         }
                     }
                     8 -> {
-                        val videoCard: VideoCard = Json.decodeFromString(dynamicCardInfo.card)
+                        val videoCard: VideoCard = Watcher.jsonParser.decodeFromString(dynamicCardInfo.card)
                         +PlainText(
                             buildString {
                                 appendLine("视频标题：")
@@ -90,7 +87,7 @@ data class Bilibili(private val targetId: String, override var targetName: Strin
                         )
                     }
                     64 -> {
-                        val articleCard: ArticleCard = Json.decodeFromString(dynamicCardInfo.card)
+                        val articleCard: ArticleCard = Watcher.jsonParser.decodeFromString(dynamicCardInfo.card)
                         +PlainText(
                             buildString {
                                 appendLine("专栏标题：")
@@ -113,14 +110,14 @@ data class Bilibili(private val targetId: String, override var targetName: Strin
 
     override suspend fun resolveTargetName(response: HttpResponse): String {
         if (targetName == defaultName) {
-            val parsedResult = Json.decodeFromString<InfoResponseJson>(response.readText())
+            val parsedResult = Watcher.jsonParser.decodeFromString<InfoResponseJson>(response.readText())
             targetName = parsedResult.data.name
         }
         return targetName
     }
 
     override suspend fun resolveTargetValidity(response: HttpResponse): Boolean {
-        val parsedResult: InfoResponseJson = Json.decodeFromString(response.readText())
+        val parsedResult: InfoResponseJson = Watcher.jsonParser.decodeFromString(response.readText())
         return parsedResult.code == 0
     }
 

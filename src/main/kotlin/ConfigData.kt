@@ -1,9 +1,9 @@
 package cn.j4ger.firewatch
 
+import kotlinx.datetime.Instant
 import net.mamoe.mirai.console.data.AutoSavePluginConfig
 import net.mamoe.mirai.console.data.AutoSavePluginData
 import net.mamoe.mirai.console.data.value
-import java.time.LocalDateTime
 
 
 // targets:{
@@ -18,5 +18,5 @@ object FirewatchConfig : AutoSavePluginConfig("FirewatchConfig") {
 //  <platformTarget>:<lastUpdateTime>
 // }
 object FirewatchData : AutoSavePluginData("FirewatchData") {
-    var lastUpdateTime: MutableMap<WatcherPlatformTarget, LocalDateTime> by value(mutableMapOf())
+    var lastUpdateTime: MutableMap<WatcherPlatformTarget, Instant> by value(mutableMapOf())
 }

@@ -20,4 +20,5 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:$ktorVersion")
     implementation("io.ktor:ktor-client-serialization:$ktorVersion")
 
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.2.1")
 }

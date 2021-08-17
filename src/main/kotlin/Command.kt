@@ -10,12 +10,14 @@ import net.mamoe.mirai.console.command.CommandSender
 import net.mamoe.mirai.console.command.CompositeCommand
 import net.mamoe.mirai.console.command.SimpleCommand
 import net.mamoe.mirai.console.command.getGroupOrNull
+import net.mamoe.mirai.utils.info
 
 object SubscribeCommands : SimpleCommand(
-    Firewatch, "订阅", "subscribe", description = "订阅社交平台更新"
+    Firewatch, "subscribe", "订阅", description = "订阅社交平台更新"
 ) {
     @Handler
     suspend fun CommandSender.subscribeCommandHandler(targetPlatform: String, targetId: String) {
+        //TODO: respawn job
         resolvePlatformTarget(targetPlatform, targetId)?.let {
             val infoResponse: HttpResponse = Watcher.httpClient.get(it.infoRequestUrl)
             if (it.resolveTargetValidity(infoResponse)) {
@@ -24,11 +26,13 @@ object SubscribeCommands : SimpleCommand(
                     return@subscribeCommandHandler
                 }
                 val targetName = it.resolveTargetName(infoResponse)
-                val currentList = FirewatchConfig.targets[it] ?: kotlin.run {
+                val currentSet = FirewatchConfig.targets[it] ?: kotlin.run {
                     mutableSetOf()
                 }
-                currentList.add(currentGroup.id)
+                currentSet.add(currentGroup.id)
+                FirewatchConfig.targets[it] = currentSet
                 sendMessage("已对${it.platformIdentifier} $targetName 添加订阅")
+
             } else {
                 sendMessage("Invalid Target ID")
             } ?: run {
@@ -45,10 +49,11 @@ object SubscribeCommands : SimpleCommand(
 }
 
 object UnsubscribeCommands : SimpleCommand(
-    Firewatch, "取消订阅", "unsubscribe", description = "取消订阅社交平台更新"
+    Firewatch, "unsubscribe", "取消订阅", description = "取消订阅社交平台更新"
 ) {
     @Handler
     suspend fun CommandSender.unsubscribeCommandHandler(targetPlatform: String, targetId: String) {
+        //TODO: respawn job
         resolvePlatformTarget(targetPlatform, targetId)?.let { watcherPlatformTarget ->
             val currentGroup = this.getGroupOrNull() ?: kotlin.run {
                 sendMessage("Invalid Command Environment")
@@ -56,6 +61,7 @@ object UnsubscribeCommands : SimpleCommand(
             }
             FirewatchConfig.targets[watcherPlatformTarget]?.let {
                 if (it.remove(currentGroup.id)) {
+                    FirewatchConfig.targets[watcherPlatformTarget] = it
                     sendMessage("对${watcherPlatformTarget.platformIdentifier} $targetId 的订阅已移除")
                 } else {
                     sendMessage("Subscription not found")
@@ -75,17 +81,18 @@ object UnsubscribeCommands : SimpleCommand(
 }
 
 object ManageCommands : CompositeCommand(
-    Firewatch, "管理订阅", "manage-subscription", description = "管理订阅列表"
+    Firewatch, "manage", "管理订阅", description = "管理订阅列表"
 ) {
-    @SubCommand("显示全部", "list-all", "所有订阅", "listall", "全部", "所有", "all")
+    @SubCommand("显示全部", "list", "所有订阅", "listall", "全部", "所有", "all")
     suspend fun CommandSender.listAll() {
+        Firewatch.logger.info { "listall called" }
         val currentGroup = this.getGroupOrNull() ?: kotlin.run {
             this.sendMessage("Invalid Command Environment")
             return@listAll
         }
         sendMessage(
             buildString {
-                appendLine("组$currentGroup.id 的全部订阅：")
+                appendLine("组${currentGroup.id} 的全部订阅：")
                 var total = 0
                 FirewatchConfig.targets.forEach {
                     if (currentGroup.id in it.value) {

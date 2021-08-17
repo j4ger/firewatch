@@ -2,16 +2,19 @@ package cn.j4ger.firewatch
 
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.datetime.Instant
+import kotlinx.serialization.Serializable
 import net.mamoe.mirai.message.data.Message
 import java.time.LocalDateTime
 
-interface WatcherPlatformTarget {
-    var targetName: String
-    val platformIdentifier: String
-    val updateRequestUrl: String
-    val infoRequestUrl: String
-    suspend fun resolveLastUpdateTime(response: HttpResponse): LocalDateTime
-    suspend fun genUpdateMessage(response: HttpResponse, lastUpdateTime: LocalDateTime): Message
-    suspend fun resolveTargetName(response: HttpResponse): String
-    suspend fun resolveTargetValidity(response: HttpResponse): Boolean
+@Serializable
+abstract class WatcherPlatformTarget {
+    abstract var targetName: String
+    abstract val platformIdentifier: String
+    abstract val updateRequestUrl: String
+    abstract val infoRequestUrl: String
+    abstract suspend fun resolveLastUpdateTime(response: HttpResponse): Instant
+    abstract suspend fun genUpdateMessage(response: HttpResponse, lastUpdateTime: Instant): Message
+    abstract suspend fun resolveTargetName(response: HttpResponse): String
+    abstract suspend fun resolveTargetValidity(response: HttpResponse): Boolean
 }
