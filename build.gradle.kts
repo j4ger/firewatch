@@ -1,5 +1,5 @@
 plugins {
-    val kotlinVersion = "1.5.10"
+    val kotlinVersion = "1.5.21"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization") version kotlinVersion
 
@@ -21,4 +21,5 @@ dependencies {
     implementation("io.ktor:ktor-client-serialization:$ktorVersion")
 
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.2.1")
+    implementation("org.reflections:reflections:0.9.12")
 }

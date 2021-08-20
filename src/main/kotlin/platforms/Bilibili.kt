@@ -1,48 +1,52 @@
 package cn.j4ger.firewatch.platforms
 
 import cn.j4ger.firewatch.Watcher
-import cn.j4ger.firewatch.WatcherPlatformTarget
 import cn.j4ger.firewatch.utils.parseJSTimestamp
-import io.ktor.client.statement.*
+import io.ktor.client.request.*
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import net.mamoe.mirai.message.data.Image
-import net.mamoe.mirai.message.data.Message
 import net.mamoe.mirai.message.data.PlainText
 import net.mamoe.mirai.message.data.buildMessageChain
 
-const val defaultName = "<...>"
-
-@Serializable
-data class Bilibili(private val targetId: String, override var targetName: String = defaultName) :
-    WatcherPlatformTarget() {
-    override val platformIdentifier = "Bilibili"
-
-    // fetching the first 10 dynamics for now
-    override val updateRequestUrl =
-        "https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history?host_uid=$targetId"
-    override val infoRequestUrl = "https://api.bilibili.com/x/space/acc/info?mid=$targetId"
-
-    override suspend fun resolveLastUpdateTime(response: HttpResponse): Instant {
-        val parsedResult = Watcher.jsonParser.decodeFromString<DynamicResponseJson>(response.readText())
-        return if (parsedResult.data.cards.isEmpty()) {
-            Instant.fromEpochSeconds(0)
-        } else {
-            parseJSTimestamp(parsedResult.data.cards[0].desc.timestamp)
-        }
+class Bilibili : PlatformResolver() {
+    override val platformIdentifier = setOf("Bili", "Bilibili", "哔哩哔哩")
+    override suspend fun resolveTarget(params: List<String>): PlatformTargetData? {
+        if (params.isEmpty()) return null
+        val targetId = params[1]
+        val infoResponseJson = (try {
+            // fetching the first 10 dynamics for now
+            httpClient.get<InfoResponseJson>("https://api.bilibili.com/x/space/acc/info?mid=${targetId}")
+        } catch (exception: Exception) {
+            return null
+        })
+        return PlatformTargetData(
+            platformIdentifier.first(),
+            infoResponseJson.data.name,
+            mutableListOf(targetId)
+        )
     }
 
-    override suspend fun genUpdateMessage(response: HttpResponse, lastUpdateTime: Instant): Message {
-        val parsedResult = Watcher.jsonParser.decodeFromString<DynamicResponseJson>(response.readText())
-        val targetUpdates = parsedResult.data.cards.filter {
+    override suspend fun checkForUpdate(
+        platformTargetData: PlatformTargetData,
+        lastUpdateTime: Instant
+    ): UpdateInfo? {
+        val dynamicResponseJson = try {
+            httpClient.get<DynamicResponseJson>("https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history?host_uid=${platformTargetData.params[0]}")
+        } catch (exception: Exception) {
+            return null
+        }
+        if (dynamicResponseJson.data.cards.isEmpty()) return null
+        val newLastUpdateTime = parseJSTimestamp(dynamicResponseJson.data.cards[0].desc.timestamp)
+        val targetUpdates = dynamicResponseJson.data.cards.filter {
             parseJSTimestamp(it.desc.timestamp) > lastUpdateTime
         }
-        return buildMessageChain {
+        val message = buildMessageChain {
             targetUpdates.forEach { dynamicCardInfo ->
                 +PlainText(
                     buildString {
-                        appendLine("$platformIdentifier $targetName 发布更新")
+                        appendLine("${platformTargetData.platformIdentifier} ${platformTargetData.name} 发布更新")
                         appendLine("动态链接：https://t.bilibili.com/${dynamicCardInfo.desc.dynamic_id}")
                     })
 
@@ -106,22 +110,8 @@ data class Bilibili(private val targetId: String, override var targetName: Strin
                 }
             }
         }
+        return UpdateInfo(newLastUpdateTime, message)
     }
-
-    override suspend fun resolveTargetName(response: HttpResponse): String {
-        if (targetName == defaultName) {
-            val parsedResult = Watcher.jsonParser.decodeFromString<InfoResponseJson>(response.readText())
-            targetName = parsedResult.data.name
-        }
-        return targetName
-    }
-
-    override suspend fun resolveTargetValidity(response: HttpResponse): Boolean {
-        val parsedResult: InfoResponseJson = Watcher.jsonParser.decodeFromString(response.readText())
-        return parsedResult.code == 0
-    }
-
-
 }
 
 @Serializable

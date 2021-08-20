@@ -1,12 +1,34 @@
 package cn.j4ger.firewatch.platforms
 
-import cn.j4ger.firewatch.WatcherPlatformTarget
+import org.reflections.Reflections
+import kotlin.reflect.full.createInstance
 
-fun resolvePlatformTarget(targetPlatform: String, targetId: String): WatcherPlatformTarget? {
-    return when (targetPlatform.lowercase()) {
-        "bilibili", "bili", "b站" -> {
-            Bilibili(targetId)
+object PlatformResolverProvider {
+    private var candidates: Set<PlatformResolver>
+
+    init {
+        val reflections = Reflections("cn.j4ger.firewatch.platforms")
+        val resolverTypes = reflections.getSubTypesOf(PlatformResolver::class.java)
+        candidates = resolverTypes.map {
+            it.kotlin.createInstance()
+        }.toSet()
+    }
+
+    fun getAvailablePlatforms(): String {
+        return buildString {
+            candidates.forEach {
+                appendLine(it.platformIdentifier.toString())
+            }
         }
-        else -> null
+    }
+
+    fun resolvePlatformTarget(targetPlatform: String): PlatformResolver? {
+        candidates.forEach { platformResolver ->
+            if (targetPlatform.lowercase() in platformResolver.platformIdentifier.map { it.lowercase() }) {
+                return@resolvePlatformTarget platformResolver
+            }
+        }
+        return null
     }
 }
+

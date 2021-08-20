@@ -1,5 +1,7 @@
 package cn.j4ger.firewatch
 
+import cn.j4ger.firewatch.platforms.PlatformResolverProvider
+import cn.j4ger.firewatch.platforms.PlatformTargetData
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
@@ -8,10 +10,9 @@ import io.ktor.client.features.json.serializer.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.coroutines.*
+import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
 import net.mamoe.mirai.Bot
-import net.mamoe.mirai.console.permission.PermissionId
-import net.mamoe.mirai.console.permission.PermissionService
 import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.message.data.Image
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
@@ -34,6 +35,7 @@ object Watcher : Closeable {
                 serializer = KotlinxSerializer(jsonParser)
             }
         }
+        //TODO: test target validity on init (one-time operation, probably by lazy)
         job = watcherScope.launch {
             FirewatchConfig.targets.forEach {
                 launch {
@@ -51,17 +53,15 @@ object Watcher : Closeable {
         }
     }
 
-    private suspend fun checkForUpdate(target: WatcherPlatformTarget, contactId: Set<Long>) {
-        val response: HttpResponse = httpClient.get(target.updateRequestUrl)
-        val lastUpdateTime = target.resolveLastUpdateTime(response)
-        val localLastUpdateTime = FirewatchData.lastUpdateTime[target] ?: lastUpdateTime
-        if (lastUpdateTime > localLastUpdateTime) {
-            val message = target.genUpdateMessage(response, localLastUpdateTime)
+    private suspend fun checkForUpdate(target: PlatformTargetData, contactId: Set<Long>) {
+        val localLastUpdateTime = FirewatchData.lastUpdateTime[target] ?: Instant.DISTANT_PAST
+        val resolver = PlatformResolverProvider.resolvePlatformTarget(target.platformIdentifier)
+        resolver?.checkForUpdate(target, localLastUpdateTime)?.let {
             contactId.forEach { id ->
-                Bot.instances[0].getGroup(id)?.sendMessage(message)
+                Bot.instances[0].getGroup(id)?.sendMessage(it.message)
             }
+            FirewatchData.lastUpdateTime[target] = it.lastUpdateTime
         }
-        FirewatchData.lastUpdateTime[target] = lastUpdateTime
     }
 
     suspend fun uploadImage(sourceUrl: String): Image {
