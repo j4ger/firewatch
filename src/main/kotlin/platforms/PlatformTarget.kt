@@ -6,11 +6,6 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.datetime.Instant
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.message.data.Image
@@ -24,17 +19,15 @@ data class PlatformTargetData(
 ) {
     companion object {
         fun deserialize(source: String): PlatformTargetData {
-            Firewatch.logger.info("decoding:${source}")
             source.split(":-:").let {
                 val paramList = it[2].drop(1).dropLast(1).split(",").toMutableList()
-                return PlatformTargetData(it[0], it[1], paramList)
+                return@deserialize PlatformTargetData(it[0], it[1], paramList)
             }
         }
+    }
 
-        fun serialize(value: PlatformTargetData): String {
-            Firewatch.logger.info("encoding:${value.platformIdentifier}:-:${value.name}:-:${value.params}")
-            return "${value.platformIdentifier}:-:${value.name}:-:${value.params}"
-        }
+    fun serialize(): String {
+        return "${this.platformIdentifier}:-:${this.name}:-:${this.params}"
     }
 
 }

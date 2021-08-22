@@ -18,11 +18,7 @@ object UnifiedSubscribeCommands : RawCommand(
                     sendMessage("Invalid Command Environment")
                     return@onCommand
                 }
-                val currentSet = FirewatchConfig.targets[it] ?: run {
-                    mutableSetOf()
-                }
-                currentSet.add(currentGroup.id)
-                FirewatchConfig.targets[it] = currentSet
+                FirewatchData.addSubscriber(it, currentGroup.id)
                 sendMessage("已对${it.platformIdentifier} ${it.name} 添加订阅")
             } ?: run {
                 sendMessage("Invalid Target $params")
@@ -33,48 +29,12 @@ object UnifiedSubscribeCommands : RawCommand(
                 buildString {
                     appendLine("Available Platforms:")
                     appendLine(PlatformResolverProvider.getAvailablePlatforms())
-                }
+                }.trim()
             )
         }
     }
 }
 
-//object SubscribeCommands : SimpleCommand(
-//    Firewatch, "subscribe", "订阅", description = "订阅社交平台更新"
-//) {
-//    @Handler
-//    suspend fun CommandSender.subscribeCommandHandler(targetPlatform: String, targetId: String) {
-//        //TODO: respawn job
-//        resolvePlatformTarget(targetPlatform, targetId)?.let {
-//            val infoResponse: HttpResponse = Watcher.httpClient.get(it.infoRequestUrl)
-//            if (it.resolveTargetValidity(infoResponse)) {
-//                val currentGroup = this.getGroupOrNull() ?: run {
-//                    sendMessage("Invalid Command Environment")
-//                    return@subscribeCommandHandler
-//                }
-//                val targetName = it.resolveTargetName(infoResponse)
-//                val currentSet = FirewatchConfig.targets[it] ?: run {
-//                    mutableSetOf()
-//                }
-//                currentSet.add(currentGroup.id)
-//                FirewatchConfig.targets[it] = currentSet
-//                sendMessage("已对${it.platformIdentifier} $targetName 添加订阅")
-//
-//            } else {
-//                sendMessage("Invalid Target ID")
-//            } ?: run {
-//                sendMessage("Unresolved Platform $targetPlatform")
-//                sendMessage(
-//                    buildString {
-//                        appendLine("Supported Platforms:")
-//                        appendLine("bilibili, bili, b站")
-//                    }
-//                )
-//            }
-//        }
-//    }
-//}
-//
 //object UnsubscribeCommands : SimpleCommand(
 //    Firewatch, "unsubscribe", "取消订阅", description = "取消订阅社交平台更新"
 //) {
@@ -120,14 +80,14 @@ object ManageCommands : CompositeCommand(
             buildString {
                 appendLine("组${currentGroup.id} 的全部订阅：")
                 var total = 0
-                FirewatchConfig.targets.forEach {
+                FirewatchData.targets.forEach {
                     if (currentGroup.id in it.value) {
                         appendLine("${it.key.platformIdentifier} ${it.key.name}")
                         total++
                     }
                 }
                 appendLine("总计$total 项")
-            }
+            }.trim()
         )
 
     }

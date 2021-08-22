@@ -1,5 +1,6 @@
 package cn.j4ger.firewatch.platforms
 
+import cn.j4ger.firewatch.Firewatch
 import cn.j4ger.firewatch.Watcher
 import cn.j4ger.firewatch.utils.parseJSTimestamp
 import io.ktor.client.request.*
@@ -35,6 +36,7 @@ class Bilibili : PlatformResolver() {
         val dynamicResponseJson = try {
             httpClient.get<DynamicResponseJson>("https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history?host_uid=${platformTargetData.params[0]}")
         } catch (exception: Exception) {
+            Firewatch.logger.info(exception)
             return null
         }
         if (dynamicResponseJson.data.cards.isEmpty()) return null
@@ -42,13 +44,17 @@ class Bilibili : PlatformResolver() {
         val targetUpdates = dynamicResponseJson.data.cards.filter {
             parseJSTimestamp(it.desc.timestamp) > lastUpdateTime
         }
+        println("Got ${targetUpdates.size} update(s)")
+        if (targetUpdates.isEmpty()) {
+            return null
+        }
         val message = buildMessageChain {
             targetUpdates.forEach { dynamicCardInfo ->
                 +PlainText(
                     buildString {
                         appendLine("${platformTargetData.platformIdentifier} ${platformTargetData.name} 发布更新")
                         appendLine("动态链接：https://t.bilibili.com/${dynamicCardInfo.desc.dynamic_id}")
-                    })
+                    }.trim())
 
                 when (dynamicCardInfo.desc.type) {
                     1 -> {
@@ -57,7 +63,7 @@ class Bilibili : PlatformResolver() {
                             buildString {
                                 appendLine("动态内容：")
                                 appendLine(textCard.item.content)
-                            }
+                            }.trim()
                         )
                     }
                     2 -> {
@@ -66,11 +72,20 @@ class Bilibili : PlatformResolver() {
                             buildString {
                                 appendLine("动态内容：")
                                 appendLine(imageCard.item.description)
-                            }
+                            }.trim()
                         )
                         imageCard.item.pictures.forEach {
                             +Image(Watcher.uploadImage(it.img_src).imageId)
                         }
+                    }
+                    4 -> {
+                        val textCard: TextCard2 = Watcher.jsonParser.decodeFromString(dynamicCardInfo.card)
+                        +PlainText(
+                            buildString {
+                                appendLine("动态内容：")
+                                appendLine(textCard.item.content)
+                            }.trim()
+                        )
                     }
                     8 -> {
                         val videoCard: VideoCard = Watcher.jsonParser.decodeFromString(dynamicCardInfo.card)
@@ -80,15 +95,11 @@ class Bilibili : PlatformResolver() {
                                 appendLine(videoCard.title)
                                 appendLine("视频简介：")
                                 appendLine(videoCard.desc)
-                            }
-                        )
-                        +Image(Watcher.uploadImage(videoCard.pic).imageId)
-                        +PlainText(
-                            buildString {
                                 appendLine("视频链接：")
                                 appendLine(videoCard.short_link ?: videoCard.short_link_v2 ?: "<Unresolved Link>")
-                            }
+                            }.trim()
                         )
+                        +Image(Watcher.uploadImage(videoCard.pic).imageId)
                     }
                     64 -> {
                         val articleCard: ArticleCard = Watcher.jsonParser.decodeFromString(dynamicCardInfo.card)
@@ -98,7 +109,7 @@ class Bilibili : PlatformResolver() {
                                 appendLine(articleCard.title)
                                 appendLine("动态内容：")
                                 appendLine(articleCard.summary)
-                            }
+                            }.trim()
                         )
                         articleCard.banner_url?.let {
                             +Image(Watcher.uploadImage(it).imageId)
@@ -110,6 +121,7 @@ class Bilibili : PlatformResolver() {
                 }
             }
         }
+        println("Built message:$message")
         return UpdateInfo(newLastUpdateTime, message)
     }
 }
@@ -130,7 +142,7 @@ private data class DynamicResponseJson(val data: DynamicInfo) {
             data class DynamicCardDescription(
                 val type: Int,
                 val timestamp: Long,
-                val dynamic_id: String,
+                val dynamic_id: Long,
             )
         }
 
@@ -152,6 +164,13 @@ private data class ImageCard(val item: ImageItem) {
         @Serializable
         data class Picture(val img_src: String)
     }
+}
+
+// type: 4
+@Serializable
+private data class TextCard2(val item: TextItem2) {
+    @Serializable
+    data class TextItem2(val content: String)
 }
 
 // type: 8

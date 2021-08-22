@@ -19,8 +19,7 @@ object Firewatch : KotlinPlugin(
 ) {
 
     override fun onEnable() {
-        FirewatchConfigBackend.reload()
-        FirewatchDataBackend.reload()
+        FirewatchData.reload()
 
 //        SubscribeCommands.register()
 //        UnsubscribeCommands.register()
@@ -28,11 +27,14 @@ object Firewatch : KotlinPlugin(
         ManageCommands.register()
 
         Watcher.init()
+
         logger.info("Loading resolvers: ${PlatformResolverProvider.getAvailablePlatforms()}")
         logger.info { "Plugin enabled" }
     }
 
     override fun onDisable() {
+        FirewatchData.save()
+
         super.onDisable()
         Watcher.close()
 
@@ -40,6 +42,7 @@ object Firewatch : KotlinPlugin(
 //        UnsubscribeCommands.unregister()
         UnifiedSubscribeCommands.unregister()
         ManageCommands.unregister()
+
         logger.info { "Plugin disabled" }
     }
 }

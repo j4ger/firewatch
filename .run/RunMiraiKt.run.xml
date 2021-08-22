@@ -1,15 +1,13 @@
 <component name="ProjectRunConfigurationManager">
-    <configuration default="false" name="RunMiraiKt" type="JetRunConfigurationType" nameIsGenerated="true">
-        <module name="firewatch.test"/>
-        <option name="VM_PARAMETERS" value=""/>
-        <option name="PROGRAM_PARAMETERS" value=""/>
-        <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false"/>
-        <option name="ALTERNATIVE_JRE_PATH"/>
-        <option name="PASS_PARENT_ENVS" value="true"/>
-        <option name="MAIN_CLASS_NAME" value="cn.j4ger.firewatch.RunTerminalKt"/>
-        <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$/run"/>
-        <method v="2">
-            <option name="Make" enabled="true"/>
-        </method>
-    </configuration>
+  <configuration default="false" name="RunTerminalKt" type="JetRunConfigurationType" nameIsGenerated="true">
+    <option name="ALTERNATIVE_JRE_PATH" value="11 (WSL)" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <option name="MAIN_CLASS_NAME" value="cn.j4ger.firewatch.RunTerminalKt" />
+    <module name="firewatch.test" />
+    <shortenClasspath name="NONE" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/run" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
 </component>

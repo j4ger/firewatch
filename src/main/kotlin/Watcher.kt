@@ -27,7 +27,7 @@ object Watcher : Closeable {
 
     private val watcherScope = CoroutineScope(Dispatchers.IO)
     fun init() {
-        jsonParser = kotlinx.serialization.json.Json {
+        jsonParser = Json {
             ignoreUnknownKeys = true
         }
         httpClient = HttpClient(CIO) {
@@ -37,18 +37,22 @@ object Watcher : Closeable {
         }
         //TODO: test target validity on init (one-time operation, probably by lazy)
         job = watcherScope.launch {
-            FirewatchConfig.targets.forEach {
-                launch {
-                    while (true) {
-                        runCatching {
-                            checkForUpdate(it.key, it.value)
-                        }.onFailure {
-                            Firewatch.logger.info(it)
+            while (true) {
+                coroutineScope {
+                    FirewatchData.targets.forEach {
+                        println("Spawning task")
+                        launch {
+                            runCatching {
+                                checkForUpdate(it.key, it.value)
+                            }.onFailure {
+                                Firewatch.logger.info(it.message)
+                            }
+                            Firewatch.logger.info("Task finished")
                         }
-                        delay(FirewatchConfig.updateInterval)
                     }
                 }
-
+                println("Delaying")
+                delay(FirewatchData.updateInterval)
             }
         }
     }
@@ -58,9 +62,11 @@ object Watcher : Closeable {
         val resolver = PlatformResolverProvider.resolvePlatformTarget(target.platformIdentifier)
         resolver?.checkForUpdate(target, localLastUpdateTime)?.let {
             contactId.forEach { id ->
+                println("Sending to $id")
                 Bot.instances[0].getGroup(id)?.sendMessage(it.message)
             }
-            FirewatchData.lastUpdateTime[target] = it.lastUpdateTime
+            println("Updating")
+            FirewatchData.setLastUpdateTime(target, it.lastUpdateTime)
         }
     }
 

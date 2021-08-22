@@ -22,4 +22,6 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.2.1")
     implementation("org.reflections:reflections:0.9.12")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.5.21")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2")
 }
