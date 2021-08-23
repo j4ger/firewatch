@@ -40,18 +40,15 @@ object Watcher : Closeable {
             while (true) {
                 coroutineScope {
                     FirewatchData.targets.forEach {
-                        println("Spawning task")
                         launch {
                             runCatching {
                                 checkForUpdate(it.key, it.value)
                             }.onFailure {
-                                Firewatch.logger.info(it.message)
+                                Firewatch.logger.warning("Error occurred during update check: ${it.message}")
                             }
-                            Firewatch.logger.info("Task finished")
                         }
                     }
                 }
-                println("Delaying")
                 delay(FirewatchData.updateInterval)
             }
         }
@@ -62,10 +59,8 @@ object Watcher : Closeable {
         val resolver = PlatformResolverProvider.resolvePlatformTarget(target.platformIdentifier)
         resolver?.checkForUpdate(target, localLastUpdateTime)?.let {
             contactId.forEach { id ->
-                println("Sending to $id")
                 Bot.instances[0].getGroup(id)?.sendMessage(it.message)
             }
-            println("Updating")
             FirewatchData.setLastUpdateTime(target, it.lastUpdateTime)
         }
     }

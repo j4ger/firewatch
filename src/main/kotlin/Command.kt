@@ -1,12 +1,13 @@
 package cn.j4ger.firewatch
 
+import cn.j4ger.firewatch.UnifiedSubscribeCommand.onCommand
 import cn.j4ger.firewatch.platforms.PlatformResolverProvider
 import net.mamoe.mirai.console.command.*
 import net.mamoe.mirai.message.data.MessageChain
 import net.mamoe.mirai.message.data.content
 
-object UnifiedSubscribeCommands : RawCommand(
-    Firewatch, "sub", description = "订阅更新"
+object UnifiedSubscribeCommand : RawCommand(
+    Firewatch, "sub","subscribe", description = "订阅更新"
 ) {
     override suspend fun CommandSender.onCommand(args: MessageChain) {
         val params = args.map {
@@ -19,12 +20,12 @@ object UnifiedSubscribeCommands : RawCommand(
                     return@onCommand
                 }
                 FirewatchData.addSubscriber(it, currentGroup.id)
-                sendMessage("已对${it.platformIdentifier} ${it.name} 添加订阅")
+                sendMessage("已对${it.platformIdentifier} ${it.name}添加订阅")
             } ?: run {
-                sendMessage("Invalid Target $params")
+                sendMessage("Invalid Target \"${params}\"")
             }
         } ?: run {
-            sendMessage("Invalid Platform ${params[0]}")
+            sendMessage("Invalid Platform \"${params[0]}\"")
             sendMessage(
                 buildString {
                     appendLine("Available Platforms:")
@@ -35,38 +36,35 @@ object UnifiedSubscribeCommands : RawCommand(
     }
 }
 
-//object UnsubscribeCommands : SimpleCommand(
-//    Firewatch, "unsubscribe", "取消订阅", description = "取消订阅社交平台更新"
-//) {
-//    @Handler
-//    suspend fun CommandSender.unsubscribeCommandHandler(targetPlatform: String, targetId: String) {
-//        //TODO: respawn job
-//        resolvePlatformTarget(targetPlatform, targetId)?.let { watcherPlatformTarget ->
-//            val currentGroup = this.getGroupOrNull() ?: run {
-//                sendMessage("Invalid Command Environment")
-//                return@unsubscribeCommandHandler
-//            }
-//            FirewatchConfig.targets[watcherPlatformTarget]?.let {
-//                if (it.remove(currentGroup.id)) {
-//                    FirewatchConfig.targets[watcherPlatformTarget] = it
-//                    sendMessage("对${watcherPlatformTarget.platformIdentifier} $targetId 的订阅已移除")
-//                } else {
-//                    sendMessage("Subscription not found")
-//                }
-//            } ?: run {
-//                sendMessage("Subscription not found")
-//            }
-//        } ?: run {
-//            sendMessage("Unresolved Platform $$targetPlatform")
-//            sendMessage(
-//                buildString {
-//                    appendLine("Supported Platforms:")
-//                    appendLine("bilibili, bili, b站")
-//                })
-//        }
-//    }
-//}
-//
+object UnifiedUnsubscribeCommand:SimpleCommand(
+    Firewatch,"unsub","unsubscribe",description = "取消订阅更新"
+){
+    @Handler
+    suspend fun CommandSender.onUnsubscribe(platform:String,targetId:Int){
+        val currentGroup = this.getGroupOrNull() ?: run {
+            sendMessage("Invalid Command Environment")
+            return@onUnsubscribe
+        }
+        PlatformResolverProvider.resolvePlatformTarget(platform)?.let {resolver ->
+            FirewatchData.targets.keys.filter {
+                it.platformIdentifier ==  resolver.platformIdentifier.first()
+            }.sortedBy {
+                it.name
+            }[targetId-1]?.let {
+                if (FirewatchData.removeSubscriber(it,currentGroup.id)){
+                    sendMessage("已取消对${it.platformIdentifier} ${it.name}的订阅")
+                } else {
+                    sendMessage("Invalid target id \"${targetId}\"")
+                }
+            }?: run{
+                sendMessage("Invalid target id \"${targetId}\"")
+            }
+        }?: run{
+            sendMessage("Invalid platform \"${platform}\"")
+        }
+    }
+}
+
 object ManageCommands : CompositeCommand(
     Firewatch, "manage", "管理订阅", description = "管理订阅列表"
 ) {
@@ -78,18 +76,28 @@ object ManageCommands : CompositeCommand(
         }
         sendMessage(
             buildString {
-                appendLine("组${currentGroup.id} 的全部订阅：")
+                appendLine("组${currentGroup.id}的全部订阅：")
                 var total = 0
-                FirewatchData.targets.forEach {
-                    if (currentGroup.id in it.value) {
-                        appendLine("${it.key.platformIdentifier} ${it.key.name}")
-                        total++
+                FirewatchData.targets.keys.groupBy {
+                    it.platformIdentifier
+                }.forEach{ platform ->
+                    appendLine("平台${platform.key}：")
+                    var subTotal = 0
+                    platform.value.sortedBy {
+                        it.name
+                    }.forEach {
+                        if (FirewatchData.targets[it]?.contains(currentGroup.id) == true){
+                            subTotal++
+                            appendLine("#${subTotal} ${it.name}")
+                        }
                     }
+                    total+=subTotal
                 }
-                appendLine("总计$total 项")
+                appendLine("总计${total}项")
             }.trim()
         )
 
     }
-
 }
+
+// TODO: usage, help command

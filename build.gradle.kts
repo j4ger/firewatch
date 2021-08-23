@@ -4,6 +4,7 @@ plugins {
     kotlin("plugin.serialization") version kotlinVersion
 
     id("net.mamoe.mirai-console") version "2.6.7"
+    id("org.jetbrains.dokka") version "1.5.0"
 }
 
 group = "cn.j4ger"

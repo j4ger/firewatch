@@ -13,6 +13,7 @@ import net.mamoe.mirai.message.data.buildMessageChain
 
 class Bilibili : PlatformResolver() {
     override val platformIdentifier = setOf("Bili", "Bilibili", "哔哩哔哩")
+
     override suspend fun resolveTarget(params: List<String>): PlatformTargetData? {
         if (params.isEmpty()) return null
         val targetId = params[1]
@@ -22,10 +23,9 @@ class Bilibili : PlatformResolver() {
         } catch (exception: Exception) {
             return null
         })
-        return PlatformTargetData(
-            platformIdentifier.first(),
+        return buildPlatformTarget(
             infoResponseJson.data.name,
-            mutableListOf(targetId)
+            listOf(targetId)
         )
     }
 
@@ -36,7 +36,7 @@ class Bilibili : PlatformResolver() {
         val dynamicResponseJson = try {
             httpClient.get<DynamicResponseJson>("https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history?host_uid=${platformTargetData.params[0]}")
         } catch (exception: Exception) {
-            Firewatch.logger.info(exception)
+            Firewatch.logger.warning(exception)
             return null
         }
         if (dynamicResponseJson.data.cards.isEmpty()) return null
@@ -44,7 +44,6 @@ class Bilibili : PlatformResolver() {
         val targetUpdates = dynamicResponseJson.data.cards.filter {
             parseJSTimestamp(it.desc.timestamp) > lastUpdateTime
         }
-        println("Got ${targetUpdates.size} update(s)")
         if (targetUpdates.isEmpty()) {
             return null
         }
@@ -54,7 +53,7 @@ class Bilibili : PlatformResolver() {
                     buildString {
                         appendLine("${platformTargetData.platformIdentifier} ${platformTargetData.name} 发布更新")
                         appendLine("动态链接：https://t.bilibili.com/${dynamicCardInfo.desc.dynamic_id}")
-                    }.trim())
+                    })
 
                 when (dynamicCardInfo.desc.type) {
                     1 -> {
@@ -63,7 +62,7 @@ class Bilibili : PlatformResolver() {
                             buildString {
                                 appendLine("动态内容：")
                                 appendLine(textCard.item.content)
-                            }.trim()
+                            }
                         )
                     }
                     2 -> {
@@ -72,7 +71,7 @@ class Bilibili : PlatformResolver() {
                             buildString {
                                 appendLine("动态内容：")
                                 appendLine(imageCard.item.description)
-                            }.trim()
+                            }
                         )
                         imageCard.item.pictures.forEach {
                             +Image(Watcher.uploadImage(it.img_src).imageId)
@@ -84,7 +83,7 @@ class Bilibili : PlatformResolver() {
                             buildString {
                                 appendLine("动态内容：")
                                 appendLine(textCard.item.content)
-                            }.trim()
+                            }
                         )
                     }
                     8 -> {
@@ -97,7 +96,7 @@ class Bilibili : PlatformResolver() {
                                 appendLine(videoCard.desc)
                                 appendLine("视频链接：")
                                 appendLine(videoCard.short_link ?: videoCard.short_link_v2 ?: "<Unresolved Link>")
-                            }.trim()
+                            }
                         )
                         +Image(Watcher.uploadImage(videoCard.pic).imageId)
                     }
@@ -109,7 +108,7 @@ class Bilibili : PlatformResolver() {
                                 appendLine(articleCard.title)
                                 appendLine("动态内容：")
                                 appendLine(articleCard.summary)
-                            }.trim()
+                            }
                         )
                         articleCard.banner_url?.let {
                             +Image(Watcher.uploadImage(it).imageId)
@@ -121,7 +120,6 @@ class Bilibili : PlatformResolver() {
                 }
             }
         }
-        println("Built message:$message")
         return UpdateInfo(newLastUpdateTime, message)
     }
 }

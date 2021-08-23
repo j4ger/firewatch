@@ -21,9 +21,8 @@ object Firewatch : KotlinPlugin(
     override fun onEnable() {
         FirewatchData.reload()
 
-//        SubscribeCommands.register()
-//        UnsubscribeCommands.register()
-        UnifiedSubscribeCommands.register()
+        UnifiedSubscribeCommand.register()
+        UnifiedUnsubscribeCommand.register()
         ManageCommands.register()
 
         Watcher.init()
@@ -38,9 +37,8 @@ object Firewatch : KotlinPlugin(
         super.onDisable()
         Watcher.close()
 
-//        SubscribeCommands.unregister()
-//        UnsubscribeCommands.unregister()
-        UnifiedSubscribeCommands.unregister()
+        UnifiedSubscribeCommand.unregister()
+        UnifiedUnsubscribeCommand.unregister()
         ManageCommands.unregister()
 
         logger.info { "Plugin disabled" }
