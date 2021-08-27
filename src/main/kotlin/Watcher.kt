@@ -10,6 +10,7 @@ import io.ktor.client.features.json.serializer.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.coroutines.*
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
 import net.mamoe.mirai.Bot
@@ -55,7 +56,7 @@ object Watcher : Closeable {
     }
 
     private suspend fun checkForUpdate(target: PlatformTargetData, contactId: Set<Long>) {
-        val localLastUpdateTime = FirewatchData.lastUpdateTime[target] ?: Instant.DISTANT_PAST
+        val localLastUpdateTime = FirewatchData.lastUpdateTime[target] ?: Clock.System.now()
         val resolver = PlatformResolverProvider.resolvePlatformTarget(target.platformIdentifier)
         resolver?.checkForUpdate(target, localLastUpdateTime)?.let {
             contactId.forEach { id ->

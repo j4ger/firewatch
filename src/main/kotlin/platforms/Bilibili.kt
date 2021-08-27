@@ -62,7 +62,7 @@ class Bilibili : PlatformResolver() {
                             buildString {
                                 appendLine("动态内容：")
                                 appendLine(textCard.item.content)
-                            }
+                            }.trim()
                         )
                     }
                     2 -> {
@@ -71,7 +71,7 @@ class Bilibili : PlatformResolver() {
                             buildString {
                                 appendLine("动态内容：")
                                 appendLine(imageCard.item.description)
-                            }
+                            }.trim()
                         )
                         imageCard.item.pictures.forEach {
                             +Image(Watcher.uploadImage(it.img_src).imageId)
@@ -83,7 +83,7 @@ class Bilibili : PlatformResolver() {
                             buildString {
                                 appendLine("动态内容：")
                                 appendLine(textCard.item.content)
-                            }
+                            }.trim()
                         )
                     }
                     8 -> {
@@ -96,7 +96,7 @@ class Bilibili : PlatformResolver() {
                                 appendLine(videoCard.desc)
                                 appendLine("视频链接：")
                                 appendLine(videoCard.short_link ?: videoCard.short_link_v2 ?: "<Unresolved Link>")
-                            }
+                            }.trim()
                         )
                         +Image(Watcher.uploadImage(videoCard.pic).imageId)
                     }
@@ -108,7 +108,7 @@ class Bilibili : PlatformResolver() {
                                 appendLine(articleCard.title)
                                 appendLine("动态内容：")
                                 appendLine(articleCard.summary)
-                            }
+                            }.trim()
                         )
                         articleCard.banner_url?.let {
                             +Image(Watcher.uploadImage(it).imageId)

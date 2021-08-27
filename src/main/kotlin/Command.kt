@@ -50,7 +50,7 @@ object UnifiedUnsubscribeCommand:SimpleCommand(
                 it.platformIdentifier ==  resolver.platformIdentifier.first()
             }.sortedBy {
                 it.name
-            }[targetId-1]?.let {
+            }[targetId-1].let {
                 if (FirewatchData.removeSubscriber(it,currentGroup.id)){
                     sendMessage("已取消对${it.platformIdentifier} ${it.name}的订阅")
                 } else {
@@ -78,6 +78,7 @@ object ManageCommands : CompositeCommand(
             buildString {
                 appendLine("组${currentGroup.id}的全部订阅：")
                 var total = 0
+                println("${FirewatchData.targets.keys}")
                 FirewatchData.targets.keys.groupBy {
                     it.platformIdentifier
                 }.forEach{ platform ->

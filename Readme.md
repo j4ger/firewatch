@@ -48,7 +48,7 @@
 
 ### 安装 [Firewatch](https://github.com/j4ger/firewatch)
 
-[Github Releases](https://github.com/j4ger/firewatch/releases)
+[Github Releases](https://github.com/j4ger/firewatch/releases)  
 或者在MCL命令行界面执行 `./mcl --update-package cn.j4ger:firewatch --channel stable --type plugin`
 
 ### 运行 [Mirai-Console](https://github.com/mamoe/mirai-console)
@@ -66,7 +66,7 @@
 Firewatch内置的指令列表：
 
 | 指令 | 描述 |
-| === | === |
+| --- | --- |
 | cn.j4ger.firewatch:command.sub | 订阅更新 |
 | cn.j4ger.firewatch:command.unsub | 取消订阅更新 |
 | cn.j4ger.firewatch:command.manage | 管理订阅列表 |

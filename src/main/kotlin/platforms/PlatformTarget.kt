@@ -23,8 +23,20 @@ class PlatformTargetData
 constructor(
     val platformIdentifier: String,
     val name: String,
-    val params: MutableList<String> = mutableListOf()
+    val params: List<String> = listOf()
 ) {
+    override fun hashCode(): Int =
+        serialize().hashCode()
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as PlatformTargetData
+
+        return serialize()==other.serialize()
+    }
+
     companion object {
         fun deserialize(source: String): PlatformTargetData {
             source.split(":-:").let {
