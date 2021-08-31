@@ -2,28 +2,16 @@ package cn.j4ger.firewatch
 
 import cn.j4ger.firewatch.platforms.PlatformResolverProvider
 import cn.j4ger.firewatch.platforms.PlatformTargetData
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.features.json.*
-import io.ktor.client.features.json.serializer.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import kotlinx.coroutines.*
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
 import net.mamoe.mirai.Bot
-import net.mamoe.mirai.contact.Contact
-import net.mamoe.mirai.message.data.Image
-import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import java.io.Closeable
 
 //TODO: error handling
 
 object Watcher : Closeable {
     private lateinit var job: Job
-    lateinit var httpClient: HttpClient
     lateinit var jsonParser: Json
 
     private val watcherScope = CoroutineScope(Dispatchers.IO)
@@ -31,10 +19,8 @@ object Watcher : Closeable {
         jsonParser = Json {
             ignoreUnknownKeys = true
         }
-        httpClient = HttpClient(CIO) {
-            install(JsonFeature) {
-                serializer = KotlinxSerializer(jsonParser)
-            }
+        FirewatchData.targets.forEach {
+            FirewatchData.lastUpdateTime.putIfAbsent(it.key,Clock.System.now())
         }
         //TODO: test target validity on init (one-time operation, probably by lazy)
         job = watcherScope.launch {
@@ -66,26 +52,9 @@ object Watcher : Closeable {
         }
     }
 
-    suspend fun uploadImage(sourceUrl: String): Image {
-        val filename = sourceUrl.substring(sourceUrl.lastIndexOf("/"))
-        val imageResponse: HttpResponse = httpClient.get(sourceUrl)
-        val imageBytes: ByteArray = imageResponse.receive()
-        val externalResource = imageBytes.toExternalResource(filename)
-        return (Bot.instances[0].asFriend as Contact).uploadImage(externalResource)
-    }
-
-    fun respawn() {
-        close()
-        init()
-    }
-
     override fun close() {
         if (::job.isInitialized) {
             job.cancel()
         }
-        if (::httpClient.isInitialized) {
-            httpClient.close()
-        }
     }
-
 }

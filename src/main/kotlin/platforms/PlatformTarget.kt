@@ -1,15 +1,15 @@
 package cn.j4ger.firewatch.platforms
 
 import cn.j4ger.firewatch.Watcher
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
+import khttp.get
 import kotlinx.datetime.Instant
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.message.data.Image
 import net.mamoe.mirai.message.data.Message
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
+import net.mamoe.mirai.utils.ExternalResource.Companion.uploadAsImage
+import java.io.File
 
 /**
  * The data class used in config files as well as update function calls
@@ -19,7 +19,14 @@ import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
  * Use [PlatformResolver.buildPlatformTarget] instead
  */
 class PlatformTargetData
-@Deprecated(message="Manual construction may cause confusion",replaceWith = ReplaceWith("PlatformResolver.buildPlatformTarget(name,params)","cn.j4ger.firewatch.PlatformResolver.buildPlatformTarget"),level = DeprecationLevel.WARNING)
+@Deprecated(
+    message = "Manual construction may cause confusion",
+    replaceWith = ReplaceWith(
+        "PlatformResolver.buildPlatformTarget(name,params)",
+        "cn.j4ger.firewatch.PlatformResolver.buildPlatformTarget"
+    ),
+    level = DeprecationLevel.WARNING
+)
 constructor(
     val platformIdentifier: String,
     val name: String,
@@ -34,7 +41,7 @@ constructor(
 
         other as PlatformTargetData
 
-        return serialize()==other.serialize()
+        return serialize() == other.serialize()
     }
 
     companion object {
@@ -113,18 +120,17 @@ abstract class PlatformResolver {
      *
      * @param[sourceUrl] The source URL to an image
      *
-     * @param[filename] The filename for the target image, default to the result of URL parsing if unset\
-     *
      * @return A [net.mamoe.mirai.message.data.Image] object, used to construct [net.mamoe.mirai.message.data.Message]s
      *
      * Note that if no extension is found in filename, the output image will have a ".mirai" extension
      */
     @Suppress("UNUSED")
-    suspend fun uploadImage(sourceUrl: String,filename:String?): Image {
-        val imageResponse: HttpResponse = Watcher.httpClient.get(sourceUrl)
-        val imageBytes: ByteArray = imageResponse.receive()
-        val externalResource = imageBytes.toExternalResource(filename?:sourceUrl.substring(sourceUrl.lastIndexOf("/")))
-        return (Bot.instances[0].asFriend as Contact).uploadImage(externalResource)
+    suspend fun uploadImage(sourceUrl: String): Image {
+        val fileExtension = File(sourceUrl).extension
+        val imageBytes = get(sourceUrl).content
+        imageBytes.toExternalResource(fileExtension).use {
+            return@uploadImage it.uploadAsImage(Bot.instances[0].asFriend as Contact)
+        }
     }
 
     /**
@@ -136,18 +142,9 @@ abstract class PlatformResolver {
      *
      * @return A [PlatformTargetData] object, which will be passed in when [PlatformResolver.checkForUpdate] is called
      */
-    protected fun buildPlatformTarget(name:String,params:List<String>) : PlatformTargetData =
+    protected fun buildPlatformTarget(name: String, params: List<String>): PlatformTargetData =
         @Suppress("DEPRECATION")
-        PlatformTargetData(this.platformIdentifier.first(),name,params.toMutableList())
-
-    /**
-     * The ktor httpClient for making http requests
-     *
-     * This should be the only client used in order to keep a unified lifecycle management working
-     *
-     * Refer to [io.ktor.client.HttpClient] for detailed usage
-     */
-    val httpClient = Watcher.httpClient
+        PlatformTargetData(this.platformIdentifier.first(), name, params.toMutableList())
 
     /**
      * A simple Json parser with [kotlinx.serialization.json.JsonBuilder.ignoreUnknownKeys] enabled

@@ -1,29 +1,34 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package cn.j4ger.firewatch.platforms
 
 import cn.j4ger.firewatch.Firewatch
 import cn.j4ger.firewatch.Watcher
 import cn.j4ger.firewatch.utils.parseJSTimestamp
-import io.ktor.client.request.*
+import khttp.get
 import kotlinx.datetime.Instant
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import net.mamoe.mirai.message.data.Image
 import net.mamoe.mirai.message.data.PlainText
 import net.mamoe.mirai.message.data.buildMessageChain
 
+@Suppress("UNUSED")
 class Bilibili : PlatformResolver() {
     override val platformIdentifier = setOf("Bili", "Bilibili", "哔哩哔哩")
 
     override suspend fun resolveTarget(params: List<String>): PlatformTargetData? {
         if (params.isEmpty()) return null
         val targetId = params[1]
-        val infoResponseJson = (try {
+        val infoResponse = (try {
             // fetching the first 10 dynamics for now
-            httpClient.get<InfoResponseJson>("https://api.bilibili.com/x/space/acc/info?mid=${targetId}")
+            get("https://api.bilibili.com/x/space/acc/info?mid=${targetId}")
         } catch (exception: Exception) {
             return null
         })
-        return buildPlatformTarget(
+        val infoResponseJson :InfoResponseJson= jsonParser.decodeFromString(infoResponse.text)
+            return buildPlatformTarget(
             infoResponseJson.data.name,
             listOf(targetId)
         )
@@ -33,12 +38,13 @@ class Bilibili : PlatformResolver() {
         platformTargetData: PlatformTargetData,
         lastUpdateTime: Instant
     ): UpdateInfo? {
-        val dynamicResponseJson = try {
-            httpClient.get<DynamicResponseJson>("https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history?host_uid=${platformTargetData.params[0]}")
+        val dynamicResponse= try {
+            get("https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history?host_uid=${platformTargetData.params[0]}")
         } catch (exception: Exception) {
             Firewatch.logger.warning(exception)
             return null
         }
+        val dynamicResponseJson:DynamicResponseJson = jsonParser.decodeFromString(dynamicResponse.text)
         if (dynamicResponseJson.data.cards.isEmpty()) return null
         val newLastUpdateTime = parseJSTimestamp(dynamicResponseJson.data.cards[0].desc.timestamp)
         val targetUpdates = dynamicResponseJson.data.cards.filter {
@@ -74,7 +80,7 @@ class Bilibili : PlatformResolver() {
                             }.trim()
                         )
                         imageCard.item.pictures.forEach {
-                            +Image(Watcher.uploadImage(it.img_src).imageId)
+                            +uploadImage(it.img_src)
                         }
                     }
                     4 -> {
@@ -98,7 +104,7 @@ class Bilibili : PlatformResolver() {
                                 appendLine(videoCard.short_link ?: videoCard.short_link_v2 ?: "<Unresolved Link>")
                             }.trim()
                         )
-                        +Image(Watcher.uploadImage(videoCard.pic).imageId)
+                        +Image(uploadImage(videoCard.pic).imageId)
                     }
                     64 -> {
                         val articleCard: ArticleCard = Watcher.jsonParser.decodeFromString(dynamicCardInfo.card)
@@ -111,7 +117,7 @@ class Bilibili : PlatformResolver() {
                             }.trim()
                         )
                         articleCard.banner_url?.let {
-                            +Image(Watcher.uploadImage(it).imageId)
+                            +uploadImage(it)
                         }
                     }
                     else -> {
@@ -189,4 +195,3 @@ private data class ArticleCard(
     val summary: String,
     val banner_url: String?,
 )
-

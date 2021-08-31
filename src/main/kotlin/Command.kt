@@ -1,6 +1,5 @@
 package cn.j4ger.firewatch
 
-import cn.j4ger.firewatch.UnifiedSubscribeCommand.onCommand
 import cn.j4ger.firewatch.platforms.PlatformResolverProvider
 import net.mamoe.mirai.console.command.*
 import net.mamoe.mirai.message.data.MessageChain

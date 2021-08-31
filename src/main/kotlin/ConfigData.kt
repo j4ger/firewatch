@@ -1,7 +1,11 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package cn.j4ger.firewatch
 
 import cn.j4ger.firewatch.platforms.PlatformTargetData
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -32,6 +36,7 @@ object FirewatchData {
         }
         currentSet.add(newSubscriber)
         targets[target] = currentSet
+        lastUpdateTime.putIfAbsent(target, Clock.System.now())
         save()
     }
 
@@ -91,4 +96,3 @@ object FirewatchData {
         val lastUpdateTime: Map<String, Instant>
     )
 }
-
