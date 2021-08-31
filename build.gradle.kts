@@ -97,10 +97,17 @@ publishing {
                         username=properties["nexusUsername"].toString()
                         password=properties["nexusPassword"].toString()
                     }
-
-                    name="firewatch"
+                    name="MavenCentral"
                     url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
 
+                }
+                maven {
+                    name = "GitHubPackages"
+                    url = uri("https://maven.pkg.github.com/j4ger/firewatch")
+                    credentials {
+                        username = properties["githubUsername"].toString()
+                        password = properties["githubPassword"].toString()
+                    }
                 }
             }
         }
