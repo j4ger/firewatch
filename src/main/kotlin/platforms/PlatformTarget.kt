@@ -74,7 +74,7 @@ data class UpdateInfo(
 /**
  * Internal class for handling image uploads
  *
- * Due to limits of Mirai, all update check function must be extended functions of this class
+ * Due to limits of Mirai, all update check functions must be extension functions of this class
  */
 class GroupTarget(private val groupId:Set<Long>){
 
@@ -85,7 +85,7 @@ class GroupTarget(private val groupId:Set<Long>){
      *
      * @return A [net.mamoe.mirai.message.data.Image] object, used to construct [net.mamoe.mirai.message.data.Message]s
      *
-     * Note that if no extension is found in filename, the output image will have a ".mirai" extension
+     * Note that if no extension is found in filename or parsed from file header, the output image will have a ".mirai" extension which may not be displayed correctly
      */
     suspend fun uploadImage(sourceUrl: String): Image {
         val fileExtension = File(sourceUrl).extension
@@ -99,7 +99,7 @@ class GroupTarget(private val groupId:Set<Long>){
 /**
  * Generic platform resolver base class
  *
- * Implement this class to add support for new social platforms
+ * Implement this class to add support for new social media platforms
  *
  * A resolver instance is created stateless-ly on load so no constructor is needed
  */
