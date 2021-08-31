@@ -44,7 +44,7 @@ object Watcher : Closeable {
     private suspend fun checkForUpdate(target: PlatformTargetData, contactId: Set<Long>) {
         val localLastUpdateTime = FirewatchData.lastUpdateTime[target] ?: Clock.System.now()
         val resolver = PlatformResolverProvider.resolvePlatformTarget(target.platformIdentifier)
-        resolver?.checkForUpdate(target, localLastUpdateTime)?.let {
+        resolver?.checkForUpdateWrapper(target, localLastUpdateTime,contactId)?.let {
             contactId.forEach { id ->
                 Bot.instances[0].getGroup(id)?.sendMessage(it.message)
             }

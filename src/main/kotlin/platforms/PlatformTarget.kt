@@ -4,7 +4,6 @@ import cn.j4ger.firewatch.Watcher
 import khttp.get
 import kotlinx.datetime.Instant
 import net.mamoe.mirai.Bot
-import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.message.data.Image
 import net.mamoe.mirai.message.data.Message
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
@@ -73,6 +72,31 @@ data class UpdateInfo(
 )
 
 /**
+ * Internal class for handling image uploads
+ *
+ * Due to limits of Mirai, all update check function must be extended functions of this class
+ */
+class GroupTarget(private val groupId:Set<Long>){
+
+    /**
+     * Function for uploading image resources
+     *
+     * @param[sourceUrl] The source URL to an image
+     *
+     * @return A [net.mamoe.mirai.message.data.Image] object, used to construct [net.mamoe.mirai.message.data.Message]s
+     *
+     * Note that if no extension is found in filename, the output image will have a ".mirai" extension
+     */
+    suspend fun uploadImage(sourceUrl: String): Image {
+        val fileExtension = File(sourceUrl).extension
+        val imageBytes = get(sourceUrl).content
+        imageBytes.toExternalResource(fileExtension).use {
+            return@uploadImage it.uploadAsImage(Bot.instances[0].getGroupOrFail(groupId.first()))
+        }
+    }
+}
+
+/**
  * Generic platform resolver base class
  *
  * Implement this class to add support for new social platforms
@@ -90,6 +114,19 @@ abstract class PlatformResolver {
     abstract val platformIdentifier: Set<String>
 
     /**
+     * Checks for platform-specific updates
+     *
+     * @param[platformTargetData] The PlatformTargetData object created by [resolveTarget] method
+     *
+     * @param[lastUpdateTime] The time of last reported update, used to filter which updates should be returned
+     *
+     * @return An [UpdateInfo] object
+     *
+     * If no update is found, null should be returned
+     */
+    abstract suspend fun GroupTarget.checkForUpdate(platformTargetData: PlatformTargetData, lastUpdateTime: Instant): UpdateInfo?
+
+    /**
      * Resolve a platform target based on user input
      *
      * @param[params] A list of params the user enters, the first element is considered to be the platform identifier
@@ -102,36 +139,6 @@ abstract class PlatformResolver {
      */
     abstract suspend fun resolveTarget(params: List<String>): PlatformTargetData?
 
-    /**
-     * Checks for platform-specific updates
-     *
-     * @param[platformTargetData] The PlatformTargetData object created by [resolveTarget] method
-     *
-     * @param[lastUpdateTime] The time of last reported update, used to filter which updates should be returned
-     *
-     * @return An [UpdateInfo] object
-     *
-     * If no update is found, null should be returned
-     */
-    abstract suspend fun checkForUpdate(platformTargetData: PlatformTargetData, lastUpdateTime: Instant): UpdateInfo?
-
-    /**
-     * Function used to upload image resource and get [net.mamoe.mirai.message.data.Image] objects
-     *
-     * @param[sourceUrl] The source URL to an image
-     *
-     * @return A [net.mamoe.mirai.message.data.Image] object, used to construct [net.mamoe.mirai.message.data.Message]s
-     *
-     * Note that if no extension is found in filename, the output image will have a ".mirai" extension
-     */
-    @Suppress("UNUSED")
-    suspend fun uploadImage(sourceUrl: String): Image {
-        val fileExtension = File(sourceUrl).extension
-        val imageBytes = get(sourceUrl).content
-        imageBytes.toExternalResource(fileExtension).use {
-            return@uploadImage it.uploadAsImage(Bot.instances[0].asFriend as Contact)
-        }
-    }
 
     /**
      * Builds a [PlatformTargetData]
@@ -155,4 +162,7 @@ abstract class PlatformResolver {
      */
     @Suppress("UNUSED")
     val jsonParser = Watcher.jsonParser
+
+    suspend fun checkForUpdateWrapper(platformTargetData: PlatformTargetData, lastUpdateTime: Instant,contactId:Set<Long>):UpdateInfo?
+        =GroupTarget(contactId).checkForUpdate(platformTargetData,lastUpdateTime)
 }

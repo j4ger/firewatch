@@ -34,7 +34,7 @@ class Bilibili : PlatformResolver() {
         )
     }
 
-    override suspend fun checkForUpdate(
+    override suspend fun GroupTarget.checkForUpdate(
         platformTargetData: PlatformTargetData,
         lastUpdateTime: Instant
     ): UpdateInfo? {
