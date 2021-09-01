@@ -11,9 +11,9 @@ object Firewatch : KotlinPlugin(
     JvmPluginDescription(
         id = "cn.j4ger.firewatch",
         name = "Firewatch",
-        version = "1.0.0-BETA",
+        version = "1.0.0",
     ) {
-        author("J4ger")
+        author("j4ger")
         info("""Social media update watcher""")
     }
 ) {

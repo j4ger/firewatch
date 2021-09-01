@@ -22,7 +22,14 @@ import kotlinx.serialization.json.Json
 object FirewatchData {
     private val dataFile = Firewatch.resolveConfigFile("FirewatchConfig.json")
     var targets: MutableMap<PlatformTargetData, MutableSet<Long>> = mutableMapOf()
-    var updateInterval: Long = 2000
+
+    // default update interval is set to be 1 min
+    var updateInterval: Long = 60000
+        set(value) {
+            field = value
+            save()
+        }
+
     var lastUpdateTime: MutableMap<PlatformTargetData, Instant> = mutableMapOf()
 
     fun setLastUpdateTime(target: PlatformTargetData, newValue: Instant) {
@@ -43,7 +50,7 @@ object FirewatchData {
     fun removeSubscriber(target: PlatformTargetData, subscriber: Long): Boolean {
         targets[target]?.let {
             if (it.remove(subscriber)) {
-                if (it.isEmpty()){
+                if (it.isEmpty()) {
                     targets.remove(target)
                 } else {
                     targets[target] = it
