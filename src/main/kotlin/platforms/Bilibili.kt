@@ -4,8 +4,8 @@ package cn.j4ger.firewatch.platforms
 
 import cn.j4ger.firewatch.Firewatch
 import cn.j4ger.firewatch.Watcher
+import cn.j4ger.firewatch.utils.getWithUA
 import cn.j4ger.firewatch.utils.parseJSTimestamp
-import khttp.get
 import kotlinx.datetime.Instant
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -23,7 +23,7 @@ class Bilibili : PlatformResolver() {
         val targetId = params[1]
         val infoResponse = (try {
             // fetching the first 10 dynamics for now
-            get("https://api.bilibili.com/x/space/acc/info?mid=${targetId}")
+            getWithUA("https://api.bilibili.com/x/space/acc/info?mid=${targetId}")
         } catch (exception: Exception) {
             return null
         })
@@ -39,7 +39,7 @@ class Bilibili : PlatformResolver() {
         lastUpdateTime: Instant
     ): UpdateInfo? {
         val dynamicResponse= try {
-            get("https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history?host_uid=${platformTargetData.params[0]}")
+            getWithUA("https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history?host_uid=${platformTargetData.params[0]}")
         } catch (exception: Exception) {
             Firewatch.logger.warning(exception)
             return null
