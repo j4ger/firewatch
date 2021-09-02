@@ -45,7 +45,9 @@ object UnifiedUnsubscribeCommand:SimpleCommand(
             return@onUnsubscribe
         }
         PlatformResolverProvider.resolvePlatformTarget(platform)?.let {resolver ->
-            FirewatchData.targets.keys.filter {
+            FirewatchData.targets.filter{
+                it.value.contains(currentGroup.id)
+            }.keys.filter {
                 it.platformIdentifier ==  resolver.platformIdentifier.first()
             }.sortedBy {
                 it.name

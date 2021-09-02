@@ -1,4 +1,4 @@
-val firewatchVersion = "1.0.0"
+val firewatchVersion = "1.0.1"
 val globalKotlinVersion = "1.5.10"
 
 plugins {
