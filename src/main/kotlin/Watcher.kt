@@ -2,6 +2,7 @@ package cn.j4ger.firewatch
 
 import cn.j4ger.firewatch.platforms.PlatformResolverProvider
 import cn.j4ger.firewatch.platforms.PlatformTargetData
+import com.github.kittinunf.fuel.core.FuelManager
 import kotlinx.coroutines.*
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
@@ -19,6 +20,7 @@ object Watcher : Closeable {
         jsonParser = Json {
             ignoreUnknownKeys = true
         }
+        FuelManager.instance.baseHeaders = mapOf("User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.58 Safari/537.36")
         FirewatchData.targets.forEach {
             FirewatchData.lastUpdateTime.putIfAbsent(it.key,Clock.System.now())
         }
@@ -31,7 +33,7 @@ object Watcher : Closeable {
                             runCatching {
                                 checkForUpdate(it.key, it.value)
                             }.onFailure {
-                                Firewatch.logger.warning("Error occurred during update check: ${it.message}")
+                                Firewatch.logger.warning("Error occurred during update check: ${it}")
                             }
                         }
                     }

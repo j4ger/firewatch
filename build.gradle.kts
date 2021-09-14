@@ -1,4 +1,4 @@
-val firewatchVersion = "1.0.1"
+val firewatchVersion = "1.0.2"
 val globalKotlinVersion = "1.5.10"
 
 plugins {
@@ -7,7 +7,6 @@ plugins {
     kotlin("plugin.serialization") version kotlinVersion
 
     id("net.mamoe.mirai-console") version "2.7.0"
-    id("org.jetbrains.dokka") version "1.5.0"
     id("maven-publish")
     id("signing")
 }
@@ -26,7 +25,8 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.jkcclemens:khttp:0.1.0")
+    implementation("com.github.kittinunf.fuel:fuel:2.3.1")
+    implementation("com.github.kittinunf.fuel:fuel-coroutines:2.3.1")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.2.1")
     implementation("org.reflections:reflections:0.9.12")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2")

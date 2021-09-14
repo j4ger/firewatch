@@ -1,14 +1,16 @@
 package cn.j4ger.firewatch.platforms
 
+import cn.j4ger.firewatch.Firewatch
 import cn.j4ger.firewatch.Watcher
-import khttp.get
+import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.coroutines.awaitByteArray
 import kotlinx.datetime.Instant
 import net.mamoe.mirai.Bot
-import net.mamoe.mirai.message.data.Image
 import net.mamoe.mirai.message.data.Message
+import net.mamoe.mirai.message.data.PlainText
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import net.mamoe.mirai.utils.ExternalResource.Companion.uploadAsImage
-import java.io.File
+import net.mamoe.mirai.utils.warning
 
 /**
  * The data class used in config files as well as update function calls
@@ -83,15 +85,22 @@ class GroupTarget(private val groupId:Set<Long>){
      *
      * @param[sourceUrl] The source URL to an image
      *
-     * @return A [net.mamoe.mirai.message.data.Image] object, used to construct [net.mamoe.mirai.message.data.Message]s
+     * @return A [net.mamoe.mirai.message.data.Message] object, used to construct [net.mamoe.mirai.message.data.Message]s
      *
      * Note that if no extension is found in filename or parsed from file header, the output image will have a ".mirai" extension which may not be displayed correctly
      */
-    suspend fun uploadImage(sourceUrl: String): Image {
-        val fileExtension = File(sourceUrl).extension
-        val imageBytes = get(sourceUrl).content
-        imageBytes.toExternalResource(fileExtension).use {
-            return@uploadImage it.uploadAsImage(Bot.instances[0].getGroupOrFail(groupId.first()))
+    suspend fun uploadImage(sourceUrl: String): Message {
+        try {
+            val fileExtension = sourceUrl.substringAfterLast(".","")
+            val imageBytes = Fuel.get(sourceUrl).awaitByteArray()
+            imageBytes.toExternalResource(
+                fileExtension
+            ).use {
+                return@uploadImage it.uploadAsImage(Bot.instances[0].getGroupOrFail(groupId.first()))
+            }
+        } catch (exception: Exception) {
+            Firewatch.logger.warning("Image upload failed:${sourceUrl} with error:${exception}")
+            return PlainText("<Invalid Image:${sourceUrl}>")
         }
     }
 }
